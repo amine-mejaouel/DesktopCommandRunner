@@ -1,0 +1,4 @@
+[submodule "Dependencies/Avalonia.FuncUI"]
+	path = Dependencies/Avalonia.FuncUI
+	url = git@github.com:fsprojects/Avalonia.FuncUI.git
+	branch = master
