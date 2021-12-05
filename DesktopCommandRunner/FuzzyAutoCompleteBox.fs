@@ -8,7 +8,9 @@ open Avalonia.FuncUI.DSL
 open Avalonia.FuncUI.Types
 open FuzzySharp
 open FuzzySharp.SimilarityRatio
+open FuzzySharp.SimilarityRatio.Scorer
 open FuzzySharp.SimilarityRatio.Scorer.Composite
+open FuzzySharp.SimilarityRatio.Scorer.StrategySensitive
 
 type Item =
     { DisplayText: string }
@@ -48,24 +50,28 @@ type FuzzyAutoCompleteBox with
 let update (msg: FuzzyAutoCompleteBoxMsg) (state: FuzzyAutoCompleteBoxState) : FuzzyAutoCompleteBoxState =
     match msg with
     | UpdateMatchedItems input ->
-        if input.Length < 3 then
+        if input.Length < 2 then
             { state with FilteredItems= List.empty }
         else
             let identifyMatchedCommands =
                 let sortedCommands = state.Items |> List.sort
+                let score (scorer: IRatioScorer)=
+                   ( Process.ExtractAll(
+                        input,
+                        sortedCommands |> List.map (fun c -> c.DisplayText),
+                        scorer= scorer)
+                     |> Seq.map (fun r -> r.Score))
                 fun input -> 
                     sortedCommands
-                    |> Seq.zip
-                           ( Process.ExtractAll(
-                                input,
-                                sortedCommands |> List.map (fun c -> c.DisplayText),
-                                scorer= ScorerCache.Get<WeightedRatioScorer>())
-                             |> Seq.map (fun r -> r.Score))
-                    |> Seq.sortByDescending fst
-                    |> Seq.map snd
+                    |> Seq.zip3
+                       (ScorerCache.Get<WeightedRatioScorer>() |> score)
+                       (ScorerCache.Get<TokenInitialismScorer>() |> score)
+                    |> Seq.sortByDescending (fun ( f, s, t ) -> (f, s))
+                    |> Seq.filter (fun (weightedScore, tokenScore, _) -> weightedScore > 75 || tokenScore > 50) 
+                    |> Seq.map (fun (_, _, item) -> item)
         
             let filteredItems = identifyMatchedCommands input
-            { state with FilteredItems = filteredItems |> Seq.take 5 |> Seq.toList }
+            { state with FilteredItems = filteredItems |> Seq.toList }
         
     | UpdateSelectedItem displayText ->
         match displayText with

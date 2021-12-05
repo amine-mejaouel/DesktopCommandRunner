@@ -14,7 +14,12 @@ module CommandRunner =
     { CommandsState =
         { InitialState with
             Items = seq {
-              for i in [1..10] -> { DisplayText = (sprintf "Sample command %i" i) }
+              yield { DisplayText = "Coffee Client"  }
+              yield { DisplayText = "banana service" }
+              yield { DisplayText = "apple service" }
+              yield { DisplayText = "kiwi service" }
+              yield { DisplayText = "tea service" }
+              yield { DisplayText = "pear service" }
             } |> List.ofSeq } }
 
   type Msg = FuzzyAutoCompleteBoxMsg of FuzzyAutoCompleteBoxMsg
